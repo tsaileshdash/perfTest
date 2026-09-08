@@ -9,27 +9,27 @@ pipeline {
     choice(
       name: 'BRANCH_TO_TEST',
       choices: ['main', 'develop', 'release', 'feature/api-tests'],
-      description: 'Select the branch to check out and test'
+      description: 'Branch to test when running manually.'
     )
     choice(
       name: 'ENVIRONMENT',
       choices: ['dev', 'qa', 'staging', 'prod'],
-      description: 'Target environment for the API validation run'
+      description: 'Target environment for the API validation run.'
     )
     string(
       name: 'API_BASE_URL',
       defaultValue: 'https://fakerestapi.azurewebsites.net/api/v1',
-      description: 'Base URL for the API under test'
+      description: 'Base URL for the API under test.'
     )
     booleanParam(
       name: 'NOTIFY_EMAIL',
-      defaultValue: true,
-      description: 'Send email notification after build completion'
+      defaultValue: false,
+      description: 'Send email notifications after the build completes.'
     )
     booleanParam(
       name: 'NOTIFY_SLACK',
-      defaultValue: true,
-      description: 'Send Slack notification after build completion'
+      defaultValue: false,
+      description: 'Send Slack notifications after the build completes.'
     )
   }
 
@@ -37,9 +37,6 @@ pipeline {
     NODE_ENV = 'test'
     REPORT_DIR = 'reports'
     CI = 'true'
-    EMAIL_RECIPIENTS = credentials('EMAIL_RECIPIENTS')
-    SLACK_CHANNEL = credentials('SLACK_CHANNEL')
-    SLACK_TOKEN_CREDENTIAL_ID = 'slack-token'
   }
 
   options {
@@ -64,7 +61,7 @@ pipeline {
             }
 
             if (!branchMatches) {
-              echo "Skipping push-triggered build for branch '${currentBranch}'. Only these branches are allowed: ${allowedBranches.join(', ')}"
+              echo "Skipping push-triggered build for branch '${currentBranch}'. Allowed branches: ${allowedBranches.join(', ')}"
               currentBuild.result = 'ABORTED'
               error("Build aborted for non-approved branch: ${currentBranch}")
             }
@@ -126,13 +123,15 @@ pipeline {
         ])
       }
     }
+
+    stage('Archive results') {
+      steps {
+        archiveArtifacts artifacts: 'reports/**/*', allowEmptyArchive: true
+      }
+    }
   }
 
   post {
-    always {
-      archiveArtifacts artifacts: 'reports/**/*', allowEmptyArchive: true
-    }
-
     success {
       script {
         notifyBuildStatus('SUCCESS')
@@ -144,6 +143,7 @@ pipeline {
         notifyBuildStatus('FAILURE')
       }
     }
+
     unstable {
       script {
         notifyBuildStatus('UNSTABLE')
@@ -162,20 +162,40 @@ void notifyBuildStatus(String status) {
     <p>Report: <a href='${env.BUILD_URL}artifact/reports/html/index.html'>Open HTML report</a></p>
   """
 
-  if (params.NOTIFY_EMAIL && env.EMAIL_RECIPIENTS?.trim()) {
-    emailext(
-      to: env.EMAIL_RECIPIENTS,
-      subject: subject,
-      body: body,
-      mimeType: 'text/html'
-    )
+  if (params.NOTIFY_EMAIL) {
+    try {
+      withCredentials([string(credentialsId: 'EMAIL_RECIPIENTS', variable: 'EMAIL_RECIPIENTS')]) {
+        if (env.EMAIL_RECIPIENTS?.trim()) {
+          emailext(
+            to: env.EMAIL_RECIPIENTS,
+            subject: subject,
+            body: body,
+            mimeType: 'text/html'
+          )
+        } else {
+          echo 'Email notifications enabled but EMAIL_RECIPIENTS credential is empty. Skipping email.'
+        }
+      }
+    } catch (err) {
+      echo "Email notification skipped: ${err.getMessage()}"
+    }
   }
 
-  if (params.NOTIFY_SLACK && env.SLACK_CHANNEL?.trim()) {
-    slackSend(
-      channel: env.SLACK_CHANNEL,
-      color: status == 'SUCCESS' ? 'good' : status == 'FAILURE' ? 'danger' : 'warning',
-      message: "${env.JOB_NAME} #${env.BUILD_NUMBER} - ${status} | Branch: ${params.BRANCH_TO_TEST ?: env.BRANCH_NAME ?: 'N/A'} | Environment: ${params.ENVIRONMENT} | Report: ${env.BUILD_URL}artifact/reports/html/index.html"
-    )
+  if (params.NOTIFY_SLACK) {
+    try {
+      withCredentials([string(credentialsId: 'SLACK_CHANNEL', variable: 'SLACK_CHANNEL')]) {
+        if (env.SLACK_CHANNEL?.trim()) {
+          slackSend(
+            channel: env.SLACK_CHANNEL,
+            color: status == 'SUCCESS' ? 'good' : status == 'FAILURE' ? 'danger' : 'warning',
+            message: "${env.JOB_NAME} #${env.BUILD_NUMBER} - ${status} | Branch: ${params.BRANCH_TO_TEST ?: env.BRANCH_NAME ?: 'N/A'} | Environment: ${params.ENVIRONMENT} | Report: ${env.BUILD_URL}artifact/reports/html/index.html"
+          )
+        } else {
+          echo 'Slack notifications enabled but SLACK_CHANNEL credential is empty. Skipping Slack.'
+        }
+      }
+    } catch (err) {
+      echo "Slack notification skipped: ${err.getMessage()}"
+    }
   }
 }
