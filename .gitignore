@@ -1,0 +1,19 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Reports and generated artifacts
+reports/
+coverage/
+
+# OS/editor files
+.DS_Store
+.vscode/
+.idea/
+
+# Environment files
+.env
+.env.*
+
+# Optional lockfile policy - keep if you want to commit it
+# package-lock.json

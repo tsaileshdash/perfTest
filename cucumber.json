@@ -1,0 +1,9 @@
+{
+  "default": {
+    "requireModule": ["ts-node/register"],
+    "paths": ["test/features/**/*.feature"],
+    "require": ["test/steps/**/*.ts", "test/support/**/*.ts"],
+    "format": ["progress-bar"],
+    "publishQuiet": true
+  }
+}

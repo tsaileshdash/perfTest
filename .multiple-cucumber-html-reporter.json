@@ -1,0 +1,9 @@
+{
+  "jsonDir": "./reports",
+  "reportPath": "./reports/html",
+  "reportName": "Fakerest API Acceptance Tests",
+  "displayDuration": true,
+  "displayReportTime": true,
+  "displayChartPercentages": true,
+  "pageTitle": "Acceptance Test Report"
+}

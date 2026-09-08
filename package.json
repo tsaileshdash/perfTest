@@ -1,0 +1,21 @@
+{
+  "name": "perftest",
+  "version": "1.0.0",
+  "description": "Playwright + Cucumber acceptance tests for Fakerest API",
+  "main": "index.js",
+  "scripts": {
+    "test": "cucumber-js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@cucumber/cucumber": "^12.9.0",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^20.17.10",
+    "multiple-cucumber-html-reporter": "^4.3.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
+  }
+}
