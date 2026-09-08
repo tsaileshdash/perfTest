@@ -44,7 +44,6 @@ pipeline {
 
   options {
     timestamps()
-    ansiColor('xterm')
     buildDiscarder(logRotator(numToKeepStr: '20'))
   }
 
