@@ -98,12 +98,9 @@ pipeline {
     stage('Run acceptance tests') {
       steps {
         script {
-          try {
+          catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
             sh 'mkdir -p reports'
             sh "API_BASE_URL='${params.API_BASE_URL}' npm test -- --format json:reports/cucumber-report.json"
-          } catch (err) {
-            currentBuild.result = 'FAILURE'
-            throw err
           }
         }
       }
@@ -111,14 +108,20 @@ pipeline {
 
     stage('Generate HTML report') {
       steps {
-        sh 'npx mchr'
+        sh '''
+          if [ -f reports/cucumber-report.json ]; then
+            npx mchr
+          else
+            echo "No cucumber JSON report found; skipping HTML generation"
+          fi
+        '''
       }
     }
 
     stage('Publish HTML report') {
       steps {
         publishHTML(target: [
-          allowMissing: false,
+          allowMissing: true,
           alwaysLinkToLastBuild: true,
           keepAll: true,
           reportDir: 'reports/html',

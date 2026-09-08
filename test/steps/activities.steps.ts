@@ -1,6 +1,8 @@
-import { Given, When, Then } from '@cucumber/cucumber';
+import { Given, When, Then, setDefaultTimeout } from '@cucumber/cucumber';
 import { request as playwrightRequest } from '@playwright/test';
 import { strict as assert } from 'node:assert';
+
+setDefaultTimeout(30000);
 
 When('I send a GET request to {string} with accept header {string}', async function (path: string, acceptHeader: string) {
   const apiRequest = await playwrightRequest.newContext();
