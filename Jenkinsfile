@@ -23,12 +23,12 @@ pipeline {
     )
     booleanParam(
       name: 'NOTIFY_EMAIL',
-      defaultValue: true,
+      defaultValue: false,
       description: 'Send email notification after build completion'
     )
     booleanParam(
       name: 'NOTIFY_SLACK',
-      defaultValue: true,
+      defaultValue: false,
       description: 'Send Slack notification after build completion'
     )
   }
@@ -136,53 +136,113 @@ pipeline {
 
     success {
       script {
-        notifyBuildStatus('SUCCESS')
+        if (params.NOTIFY_EMAIL) {
+          withCredentials([string(credentialsId: 'EMAIL_RECIPIENTS', variable: 'EMAIL_RECIPIENTS')]) {
+            if (env.EMAIL_RECIPIENTS?.trim()) {
+              def subject = "${env.JOB_NAME} #${env.BUILD_NUMBER} - SUCCESS"
+              def body = """
+                <p>Build: ${env.JOB_NAME} #${env.BUILD_NUMBER}</p>
+                <p>Status: SUCCESS</p>
+                <p>Branch: ${params.BRANCH_TO_TEST ?: env.BRANCH_NAME ?: 'N/A'}</p>
+                <p>Environment: ${params.ENVIRONMENT}</p>
+                <p>Report: <a href='${env.BUILD_URL}artifact/reports/html/index.html'>Open HTML report</a></p>
+              """
+              emailext(
+                to: env.EMAIL_RECIPIENTS,
+                subject: subject,
+                body: body,
+                mimeType: 'text/html'
+              )
+            }
+          }
+        }
+
+        if (params.NOTIFY_SLACK) {
+          withCredentials([string(credentialsId: 'SLACK_CHANNEL', variable: 'SLACK_CHANNEL')]) {
+            if (env.SLACK_CHANNEL?.trim()) {
+              slackSend(
+                channel: env.SLACK_CHANNEL,
+                color: 'good',
+                message: "${env.JOB_NAME} #${env.BUILD_NUMBER} - SUCCESS | Branch: ${params.BRANCH_TO_TEST ?: env.BRANCH_NAME ?: 'N/A'} | Environment: ${params.ENVIRONMENT} | Report: ${env.BUILD_URL}artifact/reports/html/index.html"
+              )
+            }
+          }
+        }
       }
     }
 
     failure {
       script {
-        notifyBuildStatus('FAILURE')
+        if (params.NOTIFY_EMAIL) {
+          withCredentials([string(credentialsId: 'EMAIL_RECIPIENTS', variable: 'EMAIL_RECIPIENTS')]) {
+            if (env.EMAIL_RECIPIENTS?.trim()) {
+              def subject = "${env.JOB_NAME} #${env.BUILD_NUMBER} - FAILURE"
+              def body = """
+                <p>Build: ${env.JOB_NAME} #${env.BUILD_NUMBER}</p>
+                <p>Status: FAILURE</p>
+                <p>Branch: ${params.BRANCH_TO_TEST ?: env.BRANCH_NAME ?: 'N/A'}</p>
+                <p>Environment: ${params.ENVIRONMENT}</p>
+                <p>Report: <a href='${env.BUILD_URL}artifact/reports/html/index.html'>Open HTML report</a></p>
+              """
+              emailext(
+                to: env.EMAIL_RECIPIENTS,
+                subject: subject,
+                body: body,
+                mimeType: 'text/html'
+              )
+            }
+          }
+        }
+
+        if (params.NOTIFY_SLACK) {
+          withCredentials([string(credentialsId: 'SLACK_CHANNEL', variable: 'SLACK_CHANNEL')]) {
+            if (env.SLACK_CHANNEL?.trim()) {
+              slackSend(
+                channel: env.SLACK_CHANNEL,
+                color: 'danger',
+                message: "${env.JOB_NAME} #${env.BUILD_NUMBER} - FAILURE | Branch: ${params.BRANCH_TO_TEST ?: env.BRANCH_NAME ?: 'N/A'} | Environment: ${params.ENVIRONMENT} | Report: ${env.BUILD_URL}artifact/reports/html/index.html"
+              )
+            }
+          }
+        }
       }
     }
+
     unstable {
       script {
-        notifyBuildStatus('UNSTABLE')
+        if (params.NOTIFY_EMAIL) {
+          withCredentials([string(credentialsId: 'EMAIL_RECIPIENTS', variable: 'EMAIL_RECIPIENTS')]) {
+            if (env.EMAIL_RECIPIENTS?.trim()) {
+              def subject = "${env.JOB_NAME} #${env.BUILD_NUMBER} - UNSTABLE"
+              def body = """
+                <p>Build: ${env.JOB_NAME} #${env.BUILD_NUMBER}</p>
+                <p>Status: UNSTABLE</p>
+                <p>Branch: ${params.BRANCH_TO_TEST ?: env.BRANCH_NAME ?: 'N/A'}</p>
+                <p>Environment: ${params.ENVIRONMENT}</p>
+                <p>Report: <a href='${env.BUILD_URL}artifact/reports/html/index.html'>Open HTML report</a></p>
+              """
+              emailext(
+                to: env.EMAIL_RECIPIENTS,
+                subject: subject,
+                body: body,
+                mimeType: 'text/html'
+              )
+            }
+          }
+        }
+
+        if (params.NOTIFY_SLACK) {
+          withCredentials([string(credentialsId: 'SLACK_CHANNEL', variable: 'SLACK_CHANNEL')]) {
+            if (env.SLACK_CHANNEL?.trim()) {
+              slackSend(
+                channel: env.SLACK_CHANNEL,
+                color: 'warning',
+                message: "${env.JOB_NAME} #${env.BUILD_NUMBER} - UNSTABLE | Branch: ${params.BRANCH_TO_TEST ?: env.BRANCH_NAME ?: 'N/A'} | Environment: ${params.ENVIRONMENT} | Report: ${env.BUILD_URL}artifact/reports/html/index.html"
+              )
+            }
+          }
+        }
       }
-    }
-  }
-}
-
-void notifyBuildStatus(String status) {
-  def subject = "${env.JOB_NAME} #${env.BUILD_NUMBER} - ${status}"
-  def body = """
-    <p>Build: ${env.JOB_NAME} #${env.BUILD_NUMBER}</p>
-    <p>Status: ${status}</p>
-    <p>Branch: ${params.BRANCH_TO_TEST ?: env.BRANCH_NAME ?: 'N/A'}</p>
-    <p>Environment: ${params.ENVIRONMENT}</p>
-    <p>Report: <a href='${env.BUILD_URL}artifact/reports/html/index.html'>Open HTML report</a></p>
-  """
-
-  if (params.NOTIFY_EMAIL) {
-    def emailRecipients = credentials('EMAIL_RECIPIENTS')
-    if (emailRecipients?.trim()) {
-      emailext(
-        to: emailRecipients,
-        subject: subject,
-        body: body,
-        mimeType: 'text/html'
-      )
-    }
-  }
-
-  if (params.NOTIFY_SLACK) {
-    def slackChannel = credentials('SLACK_CHANNEL')
-    if (slackChannel?.trim()) {
-      slackSend(
-        channel: slackChannel,
-        color: status == 'SUCCESS' ? 'good' : status == 'FAILURE' ? 'danger' : 'warning',
-        message: "${env.JOB_NAME} #${env.BUILD_NUMBER} - ${status} | Branch: ${params.BRANCH_TO_TEST ?: env.BRANCH_NAME ?: 'N/A'} | Environment: ${params.ENVIRONMENT} | Report: ${env.BUILD_URL}artifact/reports/html/index.html"
-      )
     }
   }
 }
