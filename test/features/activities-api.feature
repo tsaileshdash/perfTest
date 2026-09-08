@@ -3,6 +3,17 @@ Feature: Activities API
   I want to retrieve activities
   So that I can validate the API contract for acceptance testing
 
+  Scenario: Health check returns success for activities endpoint
+    Given the API base URL is "https://fakerestapi.azurewebsites.net/api/v1"
+    When I send a GET request to "/Activities" with accept header "text/plain; v=1.0"
+    Then the response status should be 200
+    And the response content type should contain "application/json"
+
+  Scenario: Health check returns failure for missing endpoint
+    Given the API base URL is "https://fakerestapi.azurewebsites.net/api/v1"
+    When I send a GET request to "/ThisEndpointDoesNotExist" with accept header "text/plain; v=1.0"
+    Then the response status should be 404
+
   Scenario: Retrieve all activities
     Given the API base URL is "https://fakerestapi.azurewebsites.net/api/v1"
     When I send a GET request to "/Activities" with accept header "text/plain; v=1.0"
