@@ -37,14 +37,11 @@ pipeline {
     NODE_ENV = 'test'
     REPORT_DIR = 'reports'
     CI = 'true'
-    EMAIL_RECIPIENTS = credentials('EMAIL_RECIPIENTS')
-    SLACK_CHANNEL = credentials('SLACK_CHANNEL')
-    SLACK_TOKEN_CREDENTIAL_ID = 'slack-token'
+    PATH = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
   }
 
   options {
     timestamps()
-    ansiColor('xterm')
     buildDiscarder(logRotator(numToKeepStr: '20'))
   }
 
@@ -166,20 +163,26 @@ void notifyBuildStatus(String status) {
     <p>Report: <a href='${env.BUILD_URL}artifact/reports/html/index.html'>Open HTML report</a></p>
   """
 
-  if (params.NOTIFY_EMAIL && env.EMAIL_RECIPIENTS?.trim()) {
-    emailext(
-      to: env.EMAIL_RECIPIENTS,
-      subject: subject,
-      body: body,
-      mimeType: 'text/html'
-    )
+  if (params.NOTIFY_EMAIL) {
+    def emailRecipients = credentials('EMAIL_RECIPIENTS')
+    if (emailRecipients?.trim()) {
+      emailext(
+        to: emailRecipients,
+        subject: subject,
+        body: body,
+        mimeType: 'text/html'
+      )
+    }
   }
 
-  if (params.NOTIFY_SLACK && env.SLACK_CHANNEL?.trim()) {
-    slackSend(
-      channel: env.SLACK_CHANNEL,
-      color: status == 'SUCCESS' ? 'good' : status == 'FAILURE' ? 'danger' : 'warning',
-      message: "${env.JOB_NAME} #${env.BUILD_NUMBER} - ${status} | Branch: ${params.BRANCH_TO_TEST ?: env.BRANCH_NAME ?: 'N/A'} | Environment: ${params.ENVIRONMENT} | Report: ${env.BUILD_URL}artifact/reports/html/index.html"
-    )
+  if (params.NOTIFY_SLACK) {
+    def slackChannel = credentials('SLACK_CHANNEL')
+    if (slackChannel?.trim()) {
+      slackSend(
+        channel: slackChannel,
+        color: status == 'SUCCESS' ? 'good' : status == 'FAILURE' ? 'danger' : 'warning',
+        message: "${env.JOB_NAME} #${env.BUILD_NUMBER} - ${status} | Branch: ${params.BRANCH_TO_TEST ?: env.BRANCH_NAME ?: 'N/A'} | Environment: ${params.ENVIRONMENT} | Report: ${env.BUILD_URL}artifact/reports/html/index.html"
+      )
+    }
   }
 }
