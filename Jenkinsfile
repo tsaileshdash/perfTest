@@ -108,6 +108,7 @@ pipeline {
         sh '''
           if [ -f reports/cucumber-report.json ]; then
             npx mchr
+            npm run report:extent
           else
             echo "No cucumber JSON report found; skipping HTML generation"
           fi
@@ -124,6 +125,14 @@ pipeline {
           reportDir: 'reports/html',
           reportFiles: 'index.html',
           reportName: 'Acceptance Test Report'
+        ])
+        publishHTML(target: [
+          allowMissing: true,
+          alwaysLinkToLastBuild: true,
+          keepAll: true,
+          reportDir: 'reports/extent',
+          reportFiles: 'index.html',
+          reportName: 'Extent Report'
         ])
       }
     }

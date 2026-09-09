@@ -4,7 +4,8 @@
   "description": "Playwright + Cucumber acceptance tests for Fakerest API",
   "main": "index.js",
   "scripts": {
-    "test": "cucumber-js"
+    "test": "cucumber-js",
+    "report:extent": "node scripts/generate-extent-report.js"
   },
   "keywords": [],
   "author": "",
