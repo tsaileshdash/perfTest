@@ -28,13 +28,22 @@ When('I send a POST request to {string} with accept header {string} and JSON bod
   const apiRequest = await playwrightRequest.newContext();
 
   try {
-    const payload = JSON.parse(requestBody);
+    let payload: any = requestBody;
+    let parsedBody = requestBody;
+
+    try {
+      payload = JSON.parse(requestBody);
+      parsedBody = JSON.stringify(payload);
+    } catch {
+      parsedBody = requestBody;
+    }
+
     const response = await apiRequest.post(`${this.baseUrl}${path}`, {
       headers: {
         accept: acceptHeader,
         'Content-Type': 'application/json; v=1.0',
       },
-      data: JSON.stringify(payload),
+      data: parsedBody,
     });
 
     this.response = {
