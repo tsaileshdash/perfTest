@@ -24,6 +24,29 @@ When('I send a GET request to {string} with accept header {string}', async funct
   }
 });
 
+When('I send a POST request to {string} with accept header {string} and JSON body {string}', async function (path: string, acceptHeader: string, requestBody: string) {
+  const apiRequest = await playwrightRequest.newContext();
+
+  try {
+    const payload = JSON.parse(requestBody);
+    const response = await apiRequest.post(`${this.baseUrl}${path}`, {
+      headers: {
+        accept: acceptHeader,
+        'Content-Type': 'application/json; v=1.0',
+      },
+      data: JSON.stringify(payload),
+    });
+
+    this.response = {
+      status: response.status(),
+      headers: response.headers(),
+      body: await response.text(),
+    };
+  } finally {
+    await apiRequest.dispose();
+  }
+});
+
 Given('the API base URL is {string}', function (baseUrl: string) {
   this.baseUrl = baseUrl;
 });
